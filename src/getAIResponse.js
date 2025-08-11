@@ -17,7 +17,7 @@ console.log('getAIResponse called with:', { userMessage, message, currentFlow, c
   // Claims flow - Continuing conversation
   if (currentFlow === 'claims') {
     if (currentStep === 'initial') {
-      if (message.includes('new incident')) {
+      if (message.includes('new incident') || message.includes('new') || message.includes('incident')) {
         return {
           content: "I understand you need to report a new incident. For your safety and to expedite the process:\n\n• If anyone is injured or in immediate danger, please call 911 first\n• I can collect preliminary information now\n• You'll receive a claim number immediately\n\nIs everyone safe? If yes, let's proceed with the details.",
           suggestions: ["Everyone is safe, continue", "Need emergency help", "Call me instead"],
@@ -25,63 +25,161 @@ console.log('getAIResponse called with:', { userMessage, message, currentFlow, c
         };
       }
       
-      if (message.includes('existing claim') || message.includes('check claim status')) {
+      if (message.includes('existing claim') || message.includes('check claim status') || message.includes('existing') || message.includes('check')) {
         return {
           content: "I can help you check on an existing claim. To locate your claim, I'll need your claim number (starts with CLM) or policy number.",
           suggestions: ["I have my claim number", "I have my policy number", "Use my phone number"],
           context: { flow: 'claims', step: 'claim_lookup' }
         };
       }
+      
+      // Handle other responses in claims flow
+      return {
+        content: "I'm here to help with your claim. Are you reporting a new incident, or do you need help with an existing claim?",
+        suggestions: ["New incident", "Existing claim", "Check claim status"],
+        context: { flow: 'claims', step: 'initial' }
+      };
     }
     
     if (currentStep === 'safety_check') {
-      if (message.includes('everyone is safe') || message.includes('continue')) {
+      if (message.includes('everyone is safe') || message.includes('continue') || message.includes('safe') || message.includes('yes')) {
         return {
           content: "Great, I'm glad everyone is safe. Now let's gather the incident details:\n\nWhat type of incident are you reporting?",
           suggestions: ["Auto accident", "Property damage", "Theft", "Weather damage"],
           context: { flow: 'claims', step: 'incident_type' }
         };
       }
+      
+      if (message.includes('emergency') || message.includes('help') || message.includes('911')) {
+        return {
+          content: "If this is an emergency, please call 911 immediately. Your safety is our top priority. Once the emergency is resolved, I'll be here to help you with the claim process.",
+          suggestions: ["Emergency resolved, continue", "Call me instead", "Need different help"],
+          context: { flow: 'claims', step: 'safety_check' }
+        };
+      }
+      
+      // Handle other responses in safety check
+      return {
+        content: "I need to confirm everyone's safety before proceeding. Is everyone safe and out of immediate danger?",
+        suggestions: ["Everyone is safe, continue", "Need emergency help", "Call me instead"],
+        context: { flow: 'claims', step: 'safety_check' }
+      };
     }
     
     if (currentStep === 'incident_type') {
-      if (message.includes('auto accident')) {
+      if (message.includes('auto accident') || message.includes('car') || message.includes('vehicle') || message.includes('accident')) {
         return {
           content: "I'll help you report the auto accident. When did this accident occur?",
           suggestions: ["Today", "Yesterday", "Within the last week", "More than a week ago"],
           context: { flow: 'claims', step: 'auto_accident_details', incidentType: 'auto_accident' }
         };
       }
+      
+      if (message.includes('property') || message.includes('home') || message.includes('house')) {
+        return {
+          content: "I'll help you report the property damage. When did this incident occur?",
+          suggestions: ["Today", "Yesterday", "Within the last week", "More than a week ago"],
+          context: { flow: 'claims', step: 'property_details', incidentType: 'property_damage' }
+        };
+      }
+      
+      if (message.includes('theft')) {
+        return {
+          content: "I'll help you report the theft. When did you discover the theft?",
+          suggestions: ["Today", "Yesterday", "Within the last week", "More than a week ago"],
+          context: { flow: 'claims', step: 'theft_details', incidentType: 'theft' }
+        };
+      }
+      
+      if (message.includes('weather') || message.includes('storm') || message.includes('hail') || message.includes('flood')) {
+        return {
+          content: "I'll help you report the weather-related damage. When did this damage occur?",
+          suggestions: ["Today", "Yesterday", "Within the last week", "More than a week ago"],
+          context: { flow: 'claims', step: 'weather_details', incidentType: 'weather_damage' }
+        };
+      }
+      
+      // Handle other responses in incident type
+      return {
+        content: "I need to know what type of incident you're reporting to help you properly. What happened?",
+        suggestions: ["Auto accident", "Property damage", "Theft", "Weather damage"],
+        context: { flow: 'claims', step: 'incident_type' }
+      };
     }
     
     if (currentStep === 'auto_accident_details') {
-      if (message.includes('today')) {
+      if (message.includes('today') || message.includes('just') || message.includes('recent')) {
         return {
           content: "Thank you. Since this happened today, time is important for documentation. Where did the accident occur?",
           suggestions: ["In Fox Point, WI", "Different location", "On the highway", "In a parking lot"],
           context: { flow: 'claims', step: 'accident_location', incidentType: 'auto_accident', when: 'today' }
         };
       }
+      
+      if (message.includes('yesterday') || message.includes('week') || message.includes('ago')) {
+        return {
+          content: "Thank you. Where did the accident occur?",
+          suggestions: ["In Fox Point, WI", "Different location", "On the highway", "In a parking lot"],
+          context: { flow: 'claims', step: 'accident_location', incidentType: 'auto_accident', when: 'recent' }
+        };
+      }
+      
+      // Handle other responses in auto accident details
+      return {
+        content: "I need to know when the accident occurred to help you properly. When did this happen?",
+        suggestions: ["Today", "Yesterday", "Within the last week", "More than a week ago"],
+        context: { flow: 'claims', step: 'auto_accident_details', incidentType: 'auto_accident' }
+      };
     }
     
     if (currentStep === 'claim_lookup') {
-      if (message.includes('claim number')) {
+      if (message.includes('claim number') || message.includes('claim') || message.includes('clm')) {
         return {
           content: "Perfect! Please provide your claim number. For this demo, I'll simulate checking claim CLM123456789:",
           suggestions: ["CLM123456789", "Different claim number"],
           context: { flow: 'claims', step: 'claim_status_result' }
         };
       }
+      
+      if (message.includes('policy number') || message.includes('policy') || message.includes('pol')) {
+        return {
+          content: "I can look up your claim using your policy number. For this demo, I'll use sample policy POL-987654321:",
+          suggestions: ["POL-987654321", "Different policy number"],
+          context: { flow: 'claims', step: 'policy_lookup' }
+        };
+      }
+      
+      if (message.includes('phone') || message.includes('number')) {
+        return {
+          content: "I can look up your claim using your phone number. For this demo, I'll use the number on file:",
+          suggestions: ["Use my phone number", "I have my claim number", "I have my policy number"],
+          context: { flow: 'claims', step: 'phone_lookup' }
+        };
+      }
+      
+      // Handle other responses in claim lookup
+      return {
+        content: "I need either your claim number, policy number, or phone number to locate your claim. Which do you have?",
+        suggestions: ["I have my claim number", "I have my policy number", "Use my phone number"],
+        context: { flow: 'claims', step: 'claim_lookup' }
+      };
     }
     
     if (currentStep === 'claim_status_result') {
-      if (message.includes('clm123456789')) {
+      if (message.includes('clm123456789') || message.includes('clm') || message.includes('123456789')) {
         return {
           content: "Claim Status Found:\n\nClaim #: CLM123456789\nType: Auto Accident\nStatus: Under Review\nFiled: March 15, 2025\nAdjuster: Sarah Johnson\nNext Step: Waiting for repair estimate\n\nYou can reach your adjuster at (800) 555-0123\n\nIs there anything specific about this claim you'd like to know?",
           suggestions: ["When will it be resolved?", "How much will I receive?", "Update my information", "Speak to my adjuster"],
           context: { flow: 'claims', step: 'claim_details', claimNumber: 'CLM123456789' }
         };
       }
+      
+      // Handle other responses in claim status result
+      return {
+        content: "I need your claim number to check the status. Please provide your claim number (starts with CLM):",
+        suggestions: ["CLM123456789", "Different claim number"],
+        context: { flow: 'claims', step: 'claim_status_result' }
+      };
     }
   }
   
@@ -97,16 +195,47 @@ console.log('getAIResponse called with:', { userMessage, message, currentFlow, c
   // Quote flow - Continuing conversation
   if (currentFlow === 'quote') {
     if (currentStep === 'coverage_type') {
-      if (message.includes('auto insurance')) {
+      if (message.includes('auto insurance') || message.includes('auto') || message.includes('car') || message.includes('vehicle')) {
         return {
           content: "Great choice! For an accurate auto insurance quote, I'll need some information about you and your vehicle. This should only take about 3 minutes.\n\nFirst, what's your ZIP code? This helps us determine local rates and coverage requirements.",
           suggestions: ["53217 (Fox Point, WI)", "Different ZIP code", "Why do you need this?"],
           context: { flow: 'quote', step: 'auto_details', coverage: 'auto' }
         };
       }
+      
+      if (message.includes('home insurance') || message.includes('home') || message.includes('house') || message.includes('property')) {
+        return {
+          content: "Excellent! Home insurance protects your most valuable investment. Let's start with your property details:\n\n• What's your home's ZIP code?\n• What year was your home built?\n• What's the approximate square footage?",
+          suggestions: ["53217, built 1990s, 2000+ sq ft", "Different details", "I'm still shopping for a home"],
+          context: { flow: 'quote', step: 'home_details', coverage: 'home' }
+        };
+      }
+      
+      if (message.includes('renters insurance') || message.includes('renters') || message.includes('rental') || message.includes('apartment')) {
+        return {
+          content: "Great choice! Renters insurance protects your personal belongings and provides liability coverage. Let's get started:\n\n• What's your ZIP code?\n• Do you have roommates?\n• What's the approximate value of your personal belongings?",
+          suggestions: ["53217, no roommates, $10,000+", "Different details", "I'm not sure about the value"],
+          context: { flow: 'quote', step: 'renters_details', coverage: 'renters' }
+        };
+      }
+      
+      if (message.includes('life insurance') || message.includes('life') || message.includes('term') || message.includes('whole')) {
+        return {
+          content: "Excellent! Life insurance provides financial security for your loved ones. Let's get started:\n\n• What's your age?\n• Are you looking for term or whole life coverage?\n• What's your approximate coverage need?",
+          suggestions: ["30s, term life, $500K", "40s, whole life, $250K", "I'm not sure about coverage"],
+          context: { flow: 'quote', step: 'life_details', coverage: 'life' }
+        };
+      }
+      
+      // Handle other responses in coverage type
+      return {
+        content: "I can help you with quotes for auto, home, renters, or life insurance. Which type of coverage interests you most?",
+        suggestions: ["Auto insurance", "Home insurance", "Renters insurance", "Life insurance"],
+        context: { flow: 'quote', step: 'coverage_type' }
+      };
     }
     
-    if ((message.includes('53217') || message.includes('fox point')) && context.coverage === 'auto') {
+    if ((message.includes('53217') || message.includes('fox point') || message.includes('wisconsin')) && context.coverage === 'auto') {
       return {
         content: "Perfect! Fox Point, Wisconsin. I see you're in a relatively low-risk area for auto claims, which means better rates for you!\n\nNext, what year is your primary vehicle? This helps us calculate the appropriate coverage and rates.",
         suggestions: ["2020 or newer", "2015-2019", "2010-2014", "Older than 2010"],
@@ -223,6 +352,13 @@ console.log('getAIResponse called with:', { userMessage, message, currentFlow, c
         context: { flow: 'quote', step: 'zip_explanation', coverage: 'auto' }
       };
     }
+    
+    // Handle other responses in quote flow
+    return {
+      content: "I'm here to help you get the best insurance quote. Let me know what type of coverage you're interested in, or if you have questions about the quote process.",
+      suggestions: ["Auto insurance", "Home insurance", "Renters insurance", "Life insurance"],
+      context: { flow: 'quote', step: 'coverage_type' }
+    };
   }
   
   // Policy management flow

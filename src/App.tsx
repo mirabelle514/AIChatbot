@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, MessageCircle, User, Bot, Shield, Car, Home, Phone } from 'lucide-react';
-import { getAIResponse } from './getAIResponse';
+import claudeAPI from './claudeAPI';
 
 // Liberty Mutual Design System Tokens
 const LMDesignSystem = {
@@ -59,6 +59,15 @@ interface LMButtonProps {
   disabled?: boolean;
   fullWidth?: boolean;
   style?: React.CSSProperties;
+}
+
+interface Message {
+  id: number;
+  type: 'user' | 'bot';
+  content: string;
+  timestamp: Date;
+  suggestions: string[];
+  aiMode?: 'claude' | 'rule-based' | 'auto';
 }
 
 const LMButton = ({ variant = 'primary', size = 'md', children, onClick, disabled = false, fullWidth = false, ...props }: LMButtonProps) => {
@@ -163,7 +172,13 @@ const LMCard = ({ children, elevated = false, ...props }: LMCardProps) => (
   </div>
 );
 
-const LMIcon = ({ name, size = 20, color = LMDesignSystem.colors.libertyBlue, bgColor = null, ...props }) => {
+const LMIcon = ({ name, size = 20, color = LMDesignSystem.colors.libertyBlue, bgColor = null, ...props }: {
+  name: string;
+  size?: number;
+  color?: string;
+  bgColor?: string | null;
+  [key: string]: any;
+}) => {
   const IconComponent = name === 'car' ? Car : 
                        name === 'home' ? Home :
                        name === 'phone' ? Phone :
@@ -193,18 +208,20 @@ const LMIcon = ({ name, size = 20, color = LMDesignSystem.colors.libertyBlue, bg
 };
 
 const LibertyMutualAIDemo = () => {
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
       type: 'bot',
       content: "Hi! I'm Liberty Assistant, here to help you with your insurance needs. I can help you file a claim, get a quote, or answer policy questions. What can I help you with today?",
       timestamp: new Date(),
-      suggestions: ["File a claim", "Get a quote", "Policy questions", "Payment help"]
+      suggestions: ["File a claim", "Get a quote", "Policy questions", "Payment help"],
+      aiMode: 'auto'
     }
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [conversationContext, setConversationContext] = useState({});
+  const [aiMode, setAiMode] = useState<'claude' | 'rule-based' | 'auto'>('auto');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -212,6 +229,12 @@ const LibertyMutualAIDemo = () => {
   };
 
   useEffect(() => {
+    // Debug environment variables
+    console.log('Environment variables check:');
+    console.log('REACT_APP_CLAUDE_API_KEY exists:', !!process.env.REACT_APP_CLAUDE_API_KEY);
+    console.log('REACT_APP_CLAUDE_API_KEY length:', process.env.REACT_APP_CLAUDE_API_KEY ? process.env.REACT_APP_CLAUDE_API_KEY.length : 0);
+    console.log('Claude API Status:', claudeAPI.getAPIStatus());
+    
     scrollToBottom();
   }, [messages, isTyping]);
 
@@ -222,7 +245,8 @@ const LibertyMutualAIDemo = () => {
         type: 'bot',
         content: "Hi! I'm Liberty Assistant, here to help you with your insurance needs. I can help you file a claim, get a quote, or answer policy questions. What can I help you with today?",
         timestamp: new Date(),
-        suggestions: ["File a claim", "Get a quote", "Policy questions", "Payment help"]
+        suggestions: ["File a claim", "Get a quote", "Policy questions", "Payment help"],
+        aiMode: 'auto'
       }
     ]);
     setConversationContext({});
@@ -236,12 +260,13 @@ const LibertyMutualAIDemo = () => {
     if (!textToSend) return;
 
     // Add user message
-    const userMessage = {
+    const userMessage: Message = {
       id: Date.now(),
       type: 'user',
       content: textToSend,
       timestamp: new Date(),
-      suggestions: [] as string[]
+      suggestions: [] as string[],
+      aiMode: undefined // User messages don't have AI mode
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -249,61 +274,106 @@ const LibertyMutualAIDemo = () => {
     setIsTyping(true);
 
     try {
+      // Check API status first
+      console.log('Claude API Status:', claudeAPI.getAPIStatus());
+      console.log('Current context:', conversationContext);
+      console.log('User message:', textToSend);
+      
       // Simulate AI processing time
-      setTimeout(() => {
-        console.log('Current context:', conversationContext);
-        console.log('User message:', textToSend);
-        
-        const aiResponse = getAIResponse(textToSend, conversationContext);
-        console.log('AI Response:', aiResponse);
-        
-        if (aiResponse && aiResponse.content) {
-          const botMessage = {
-            id: Date.now() + 1,
-            type: 'bot',
-            content: aiResponse.content,
-            timestamp: new Date(),
-            suggestions: aiResponse.suggestions || []
-          };
+      setTimeout(async () => {
+        try {
+          let aiResponse;
+          
+          // Use selected AI mode
+          if (aiMode === 'claude' && claudeAPI.isAPIAvailable()) {
+            console.log('Using Claude AI mode');
+            aiResponse = await claudeAPI.generateResponse(textToSend, messages, conversationContext);
+          } else if (aiMode === 'rule-based') {
+            console.log('Using Rule-based mode');
+            aiResponse = claudeAPI.getFallbackResponse(textToSend, conversationContext);
+          } else {
+            // Auto mode - try Claude first, fallback to rule-based
+            console.log('Using Auto mode');
+            if (claudeAPI.isAPIAvailable()) {
+              try {
+                aiResponse = await claudeAPI.generateResponse(textToSend, messages, conversationContext);
+              } catch (error) {
+                console.log('Claude API failed, falling back to rule-based');
+                aiResponse = claudeAPI.getFallbackResponse(textToSend, conversationContext);
+              }
+            } else {
+              console.log('Claude API not available, using rule-based');
+              aiResponse = claudeAPI.getFallbackResponse(textToSend, conversationContext);
+            }
+          }
+          
+          console.log('AI Response:', aiResponse);
+          
+          if (aiResponse && aiResponse.content) {
+            const botMessage: Message = {
+              id: Date.now() + 1,
+              type: 'bot',
+              content: aiResponse.content,
+              timestamp: new Date(),
+              suggestions: aiResponse.suggestions || [],
+              aiMode: aiMode // Add AI mode to track which system generated the response
+            };
 
-          setMessages(prev => [...prev, botMessage]);
-          setConversationContext(prev => {
-            const newContext = { ...prev, ...aiResponse.context };
-            console.log('Updated context:', newContext);
-            return newContext;
-          });
-        } else {
-          // Fallback response if AI response is invalid
-          const fallbackMessage = {
+            setMessages(prev => [...prev, botMessage]);
+            setConversationContext(prev => {
+              const newContext = { ...prev, ...aiResponse.context };
+              console.log('Updated context:', newContext);
+              return newContext;
+            });
+          } else {
+            // Fallback response if AI response is invalid
+            const fallbackMessage: Message = {
+              id: Date.now() + 1,
+              type: 'bot',
+              content: "I apologize, but I'm having trouble processing that request. Let me help you with something else. What would you like to know about your insurance?",
+              timestamp: new Date(),
+              suggestions: ["File a claim", "Get a quote", "Policy questions", "Payment help"],
+              aiMode: 'rule-based' as const
+            };
+            setMessages(prev => [...prev, fallbackMessage]);
+          }
+        } catch (apiError) {
+          console.error('Error in AI processing:', apiError);
+          // Final fallback to rule-based responses
+          const fallbackResponse = claudeAPI.getFallbackResponse(textToSend, conversationContext);
+          const botMessage: Message = {
             id: Date.now() + 1,
             type: 'bot',
-            content: "I apologize, but I'm having trouble processing that request. Let me help you with something else. What would you like to know about your insurance?",
+            content: fallbackResponse.content,
             timestamp: new Date(),
-            suggestions: ["File a claim", "Get a quote", "Policy questions", "Payment help"]
+            suggestions: fallbackResponse.suggestions || [],
+            aiMode: 'rule-based' as const
           };
-          setMessages(prev => [...prev, fallbackMessage]);
+          setMessages(prev => [...prev, botMessage]);
+          setConversationContext(prev => ({ ...prev, ...fallbackResponse.context }));
         }
         setIsTyping(false);
       }, 1000 + Math.random() * 1000); // Realistic response time
     } catch (error) {
       console.error('Error processing message:', error);
-      const errorMessage = {
+      const errorMessage: Message = {
         id: Date.now() + 1,
         type: 'bot',
         content: "I'm experiencing a technical issue. Please try again or contact our support team for assistance.",
         timestamp: new Date(),
-        suggestions: ["Try again", "File a claim", "Get a quote", "Contact support"]
+        suggestions: ["Try again", "File a claim", "Get a quote", "Contact support"],
+        aiMode: 'rule-based' as const
       };
       setMessages(prev => [...prev, errorMessage]);
       setIsTyping(false);
     }
   };
 
-  const handleSuggestionClick = (suggestion) => {
+  const handleSuggestionClick = (suggestion: string) => {
     handleSendMessage(suggestion);
   };
 
-  const formatTime = (timestamp) => {
+  const formatTime = (timestamp: Date) => {
     return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
@@ -380,279 +450,496 @@ const LibertyMutualAIDemo = () => {
             Reset Chat
           </LMButton>
         </div>
-        
-        {/* Security Badge - Following LM Brand Guidelines */}
-        <LMCard 
-          style={{
-            marginTop: LMDesignSystem.spacing.md,
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            border: 'none',
-            padding: window.innerWidth < 768 ? LMDesignSystem.spacing.sm : LMDesignSystem.spacing.md
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: LMDesignSystem.spacing.sm }}>
-            <LMIcon name="shield" size={16} color={LMDesignSystem.colors.libertyYellow} />
-            <span style={{ 
-              fontSize: window.innerWidth < 768 ? '0.75rem' : '0.875rem', 
-              color: LMDesignSystem.colors.white 
-            }}>
-              Secure & Private Conversation
-            </span>
-          </div>
-          <div style={{ 
-            fontSize: window.innerWidth < 768 ? '0.625rem' : '0.75rem', 
-            color: LMDesignSystem.colors.libertyTeal,
-            marginTop: LMDesignSystem.spacing.xs
-          }}>
-            Demo showcasing AI UX patterns for insurance customer service
-          </div>
-        </LMCard>
       </div>
 
-      {/* Messages Area */}
-      <div 
-        style={{
-          height: window.innerWidth < 768 ? '50vh' : '400px',
-          overflowY: 'auto',
-          padding: window.innerWidth < 768 ? LMDesignSystem.spacing.md : LMDesignSystem.spacing.lg,
-          backgroundColor: LMDesignSystem.colors.libertyAtmosphericWhite,
+      {/* Mobile Demo Mode Selector */}
+      {window.innerWidth < 768 && (
+        <div style={{
+          padding: LMDesignSystem.spacing.md,
+          backgroundColor: LMDesignSystem.colors.white,
+          borderBottom: `1px solid ${LMDesignSystem.colors.grayTint10}`,
           display: 'flex',
           flexDirection: 'column',
-          gap: LMDesignSystem.spacing.lg
-        }}
-      >
-        {messages.map((message) => (
-          <div 
-            key={message.id} 
-            style={{
-              display: 'flex',
-              justifyContent: message.type === 'user' ? 'flex-end' : 'flex-start'
-            }}
-          >
-            <LMCard
-              style={{
-                maxWidth: window.innerWidth < 768 ? '280px' : '320px',
-                width: window.innerWidth < 768 ? 'calc(100% - 40px)' : 'auto',
-                backgroundColor: message.type === 'user' 
-                  ? LMDesignSystem.colors.libertyBlue 
-                  : LMDesignSystem.colors.white,
-                color: message.type === 'user' 
-                  ? LMDesignSystem.colors.white 
-                  : LMDesignSystem.colors.libertyDarkGray,
-                border: message.type === 'bot' 
-                  ? `1px solid ${LMDesignSystem.colors.grayTint10}` 
-                  : 'none',
-                padding: window.innerWidth < 768 ? LMDesignSystem.spacing.md : LMDesignSystem.spacing.lg
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: LMDesignSystem.spacing.sm }}>
-                {message.type === 'bot' && (
-                  <LMIcon 
-                    name="bot" 
-                    size={16} 
-                    color={LMDesignSystem.colors.libertyTeal}
-                  />
-                )}
-                <div style={{ flex: 1 }}>
-                  <div style={{ 
-                    fontSize: '0.875rem',
-                    lineHeight: '1.5',
-                    whiteSpace: 'pre-line'
-                  }}>
-                    {message.content}
-                  </div>
-                  <div style={{
-                    fontSize: '0.75rem',
-                    marginTop: LMDesignSystem.spacing.sm,
-                    color: message.type === 'user' 
-                      ? 'rgba(255, 255, 255, 0.7)' 
-                      : LMDesignSystem.colors.libertyDarkGray,
-                    opacity: 0.7
-                  }}>
-                    {formatTime(message.timestamp)}
-                  </div>
-                </div>
-                {message.type === 'user' && (
-                  <LMIcon 
-                    name="user" 
-                    size={16} 
-                    color="rgba(255, 255, 255, 0.8)"
-                  />
-                )}
-              </div>
-              
-              {/* Suggestion Buttons */}
-              {message.suggestions && message.suggestions.length > 0 && (
-                <div style={{ 
-                  marginTop: LMDesignSystem.spacing.md, 
-                  display: 'flex', 
-                  flexWrap: 'wrap', 
-                  gap: LMDesignSystem.spacing.sm 
-                }}>
-                  {message.suggestions.map((suggestion, index) => (
-                    <LMButton
-                      key={index}
-                      variant="suggestion"
-                      size="sm"
-                      onClick={() => handleSuggestionClick(suggestion)}
-                      disabled={false}
-                      style={{
-                        fontSize: window.innerWidth < 768 ? '0.75rem' : '0.875rem',
-                        padding: window.innerWidth < 768 ? 
-                          `${LMDesignSystem.spacing.xs} ${LMDesignSystem.spacing.sm}` :
-                          `${LMDesignSystem.spacing.sm} ${LMDesignSystem.spacing.md}`
-                      }}
-                    >
-                      {suggestion}
-                    </LMButton>
-                  ))}
-                </div>
-              )}
-            </LMCard>
-          </div>
-        ))}
-        
-        {/* Typing Indicator */}
-        {isTyping && (
-          <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-            <LMCard style={{
-              padding: window.innerWidth < 768 ? LMDesignSystem.spacing.md : LMDesignSystem.spacing.lg
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: LMDesignSystem.spacing.sm }}>
-                <LMIcon name="bot" size={16} color={LMDesignSystem.colors.libertyTeal} />
-                <div style={{ display: 'flex', gap: '2px' }}>
-                  {[0, 1, 2].map(i => (
-                    <div
-                      key={i}
-                      style={{
-                        width: '6px',
-                        height: '6px',
-                        backgroundColor: LMDesignSystem.colors.libertyTeal,
-                        borderRadius: LMDesignSystem.borderRadius.full,
-                        animation: `bounce 1.4s ease-in-out ${i * 0.16}s infinite`
-                      }}
-                    />
-                  ))}
-                </div>
-                <span style={{ 
-                  fontSize: window.innerWidth < 768 ? '0.75rem' : '0.875rem', 
-                  color: LMDesignSystem.colors.libertyDarkGray 
-                }}>
-                  Typing...
-                </span>
-              </div>
-            </LMCard>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input Area */}
-      <div 
-        style={{
-          borderTop: `1px solid ${LMDesignSystem.colors.grayTint10}`,
-          padding: window.innerWidth < 768 ? LMDesignSystem.spacing.md : LMDesignSystem.spacing.lg,
-          backgroundColor: LMDesignSystem.colors.white
-        }}
-      >
-        <div style={{ 
-          display: 'flex', 
-          gap: LMDesignSystem.spacing.md,
-          flexDirection: window.innerWidth < 480 ? 'column' : 'row'
-        }}>
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="Ask about claims, quotes, policy details, or billing..."
-            style={{
-              flex: 1,
-              border: `1px solid ${LMDesignSystem.colors.grayTint10}`,
-              borderRadius: LMDesignSystem.borderRadius.md,
-              padding: window.innerWidth < 768 ? LMDesignSystem.spacing.sm : LMDesignSystem.spacing.md,
-              fontSize: window.innerWidth < 768 ? '0.875rem' : '1rem',
-              fontFamily: LMDesignSystem.typography.fontFamily.primary,
-              outline: 'none',
-              transition: 'border-color 0.2s ease-in-out',
-              width: window.innerWidth < 480 ? '100%' : 'auto'
-            }}
-            onFocus={(e) => e.target.style.borderColor = LMDesignSystem.colors.libertyTeal}
-            onBlur={(e) => e.target.style.borderColor = LMDesignSystem.colors.grayTint10}
-          />
-          <LMButton
-            variant="primary"
-            onClick={() => handleSendMessage()}
-            disabled={!inputValue.trim() || isTyping}
-            fullWidth={window.innerWidth < 480}
-          >
-            <Send size={18} />
-            {window.innerWidth < 480 && ' Send'}
-          </LMButton>
-        </div>
-        
-        {/* Quick Actions */}
-        <div style={{ 
-          marginTop: LMDesignSystem.spacing.md, 
-          display: 'grid',
-          gridTemplateColumns: window.innerWidth < 480 ? '1fr' : 
-                               window.innerWidth < 768 ? 'repeat(2, 1fr)' : 
-                               'repeat(4, 1fr)',
           gap: LMDesignSystem.spacing.sm
         }}>
-          <LMButton
-            variant="suggestion"
-            onClick={() => handleSendMessage("I need to file a claim")}
-            disabled={false}
-            fullWidth={true}
-            style={{
-              backgroundColor: LMDesignSystem.colors.yellowTint60
-            }}
-          >File Claim
-          </LMButton>
-          <LMButton
-            variant="suggestion"
-            onClick={() => handleSendMessage("I want a quote for auto insurance")}
-            disabled={false}
-            fullWidth={true}
-            style={{
-              backgroundColor: LMDesignSystem.colors.yellowTint60
-            }}
-          >
-            Get Quote
-          </LMButton>
-          <LMButton
-            variant="suggestion"
-            onClick={() => handleSendMessage("Help me understand my policy")}
-            disabled={false}
-            fullWidth={true}
-            style={{
-              backgroundColor: LMDesignSystem.colors.yellowTint60
-            }}
-          >
-            Policy Help
-          </LMButton>
-          <LMButton
-            variant="suggestion"
-            onClick={() => handleSendMessage("I need help with billing and payments")}
-            disabled={false}
-            fullWidth={true}
-            style={{
-              backgroundColor: LMDesignSystem.colors.yellowTint60
-            }}
-          >
-            Billing Help
-          </LMButton>
+          <div style={{
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            color: LMDesignSystem.colors.libertyBlue,
+            textAlign: 'center'
+          }}>
+            Demo Mode Selector
+          </div>
+          <div style={{
+            display: 'flex',
+            gap: LMDesignSystem.spacing.sm,
+            justifyContent: 'center',
+            flexWrap: 'wrap'
+          }}>
+            {(['claude', 'rule-based', 'auto'] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setAiMode(mode)}
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '0.75rem',
+                  borderRadius: LMDesignSystem.borderRadius.sm,
+                  border: `1px solid ${aiMode === mode ? LMDesignSystem.colors.libertyBlue : LMDesignSystem.colors.libertyDarkGray}`,
+                  backgroundColor: aiMode === mode ? LMDesignSystem.colors.libertyBlue : 'white',
+                  color: aiMode === mode ? 'white' : LMDesignSystem.colors.libertyBlue,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  textTransform: 'capitalize'
+                }}
+                onMouseEnter={(e) => {
+                  if (aiMode !== mode) {
+                    e.currentTarget.style.backgroundColor = LMDesignSystem.colors.libertyTeal;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (aiMode !== mode) {
+                    e.currentTarget.style.backgroundColor = 'white';
+                  }
+                }}
+              >
+                {mode === 'claude' ? 'Claude AI' : mode === 'rule-based' ? 'Rule-based' : 'Auto'}
+              </button>
+            ))}
+          </div>
+          <div style={{
+            fontSize: '0.625rem',
+            color: LMDesignSystem.colors.libertyDarkGray,
+            textAlign: 'center',
+            fontStyle: 'italic'
+          }}>
+            {aiMode === 'claude' ? 'Forces Claude API responses' :
+             aiMode === 'rule-based' ? 'Uses local rule-based system' :
+             'Automatically chooses best available option'}
+          </div>
         </div>
-        
+      )}
+
+      {/* Main Content Area with Sidebar */}
+      <div style={{
+        display: 'flex',
+        flexDirection: window.innerWidth < 768 ? 'column' : 'row',
+        height: window.innerWidth < 768 ? 'auto' : 'calc(100vh - 200px)'
+      }}>
+        {/* Chat Area */}
         <div style={{
-          marginTop: LMDesignSystem.spacing.md,
-          fontSize: window.innerWidth < 768 ? '0.625rem' : '0.75rem',
-          color: LMDesignSystem.colors.libertyDarkGray,
-          textAlign: 'center'
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          minWidth: 0
         }}>
-          Demo by Mirabelle Doiron - Showcasing AI UX Best Practices for Insurance
+          {/* Messages Area */}
+          <div 
+            style={{
+              flex: 1,
+              height: window.innerWidth < 768 ? '50vh' : 'auto',
+              overflowY: 'auto',
+              padding: window.innerWidth < 768 ? LMDesignSystem.spacing.md : LMDesignSystem.spacing.lg,
+              backgroundColor: LMDesignSystem.colors.libertyAtmosphericWhite,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: LMDesignSystem.spacing.lg
+            }}
+          >
+            {messages.map((message) => (
+              <div 
+                key={message.id} 
+                style={{
+                  display: 'flex',
+                  justifyContent: message.type === 'user' ? 'flex-end' : 'flex-start'
+                }}
+              >
+                <LMCard
+                  style={{
+                    maxWidth: window.innerWidth < 768 ? '280px' : '320px',
+                    width: window.innerWidth < 768 ? 'calc(100% - 40px)' : 'auto',
+                    backgroundColor: message.type === 'user' 
+                      ? LMDesignSystem.colors.libertyBlue 
+                      : LMDesignSystem.colors.white,
+                    color: message.type === 'user' 
+                      ? LMDesignSystem.colors.white 
+                      : LMDesignSystem.colors.libertyDarkGray,
+                    border: message.type === 'bot' 
+                      ? `1px solid ${LMDesignSystem.colors.grayTint10}` 
+                      : 'none',
+                    padding: window.innerWidth < 768 ? LMDesignSystem.spacing.md : LMDesignSystem.spacing.lg
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: LMDesignSystem.spacing.sm }}>
+                    {message.type === 'bot' && (
+                      <LMIcon 
+                        name="bot" 
+                        size={16} 
+                        color={LMDesignSystem.colors.libertyTeal}
+                      />
+                    )}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ 
+                        fontSize: '0.875rem',
+                        lineHeight: '1.5',
+                        whiteSpace: 'pre-line'
+                      }}>
+                        {message.content}
+                      </div>
+                      {message.aiMode && (
+                        <div style={{
+                          fontSize: '0.625rem',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          backgroundColor: message.aiMode === 'claude' ? LMDesignSystem.colors.libertyYellow : 
+                                         message.aiMode === 'rule-based' ? LMDesignSystem.colors.libertyTeal :
+                                         LMDesignSystem.colors.libertyBlue,
+                          color: 'white',
+                          fontWeight: 600,
+                          display: 'inline-block',
+                          marginTop: LMDesignSystem.spacing.xs
+                        }}>
+                          {message.aiMode === 'claude' ? 'Claude AI' : 
+                           message.aiMode === 'rule-based' ? 'Rule-based' : 'Auto'}
+                        </div>
+                      )}
+                      <div style={{
+                        fontSize: '0.75rem',
+                        marginTop: LMDesignSystem.spacing.sm,
+                        color: message.type === 'user' 
+                          ? 'rgba(255, 255, 255, 0.7)' 
+                          : LMDesignSystem.colors.libertyDarkGray,
+                        opacity: 0.7
+                      }}>
+                        {formatTime(message.timestamp)}
+                      </div>
+                    </div>
+                    {message.type === 'user' && (
+                      <LMIcon 
+                        name="user" 
+                        size={16} 
+                        color="rgba(255, 255, 255, 0.8)"
+                      />
+                    )}
+                  </div>
+                  
+                  {/* Suggestion Buttons */}
+                  {message.suggestions && message.suggestions.length > 0 && (
+                    <div style={{ 
+                      marginTop: LMDesignSystem.spacing.md, 
+                      display: 'flex', 
+                      flexWrap: 'wrap', 
+                      gap: LMDesignSystem.spacing.sm 
+                    }}>
+                      {message.suggestions.map((suggestion, index) => (
+                        <LMButton
+                          key={index}
+                          variant="suggestion"
+                          size="sm"
+                          onClick={() => handleSuggestionClick(suggestion)}
+                          disabled={false}
+                          style={{
+                            fontSize: window.innerWidth < 768 ? '0.75rem' : '0.875rem',
+                            padding: window.innerWidth < 768 ? 
+                              `${LMDesignSystem.spacing.xs} ${LMDesignSystem.spacing.sm}` :
+                              `${LMDesignSystem.spacing.sm} ${LMDesignSystem.spacing.md}`
+                          }}
+                        >
+                          {suggestion}
+                        </LMButton>
+                      ))}
+                    </div>
+                  )}
+                </LMCard>
+              </div>
+            ))}
+            
+            {/* Typing Indicator */}
+            {isTyping && (
+              <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                <LMCard style={{
+                  padding: window.innerWidth < 768 ? LMDesignSystem.spacing.md : LMDesignSystem.spacing.lg
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: LMDesignSystem.spacing.sm }}>
+                    <LMIcon name="bot" size={16} color={LMDesignSystem.colors.libertyTeal} />
+                    <div style={{ display: 'flex', gap: '2px' }}>
+                      {[0, 1, 2].map(i => (
+                        <div
+                          key={i}
+                          style={{
+                            width: '6px',
+                            height: '6px',
+                            backgroundColor: LMDesignSystem.colors.libertyTeal,
+                            borderRadius: LMDesignSystem.borderRadius.full,
+                            animation: `bounce 1.4s ease-in-out ${i * 0.16}s infinite`
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <span style={{ 
+                      fontSize: window.innerWidth < 768 ? '0.75rem' : '0.875rem', 
+                      color: LMDesignSystem.colors.libertyDarkGray 
+                    }}>
+                      Typing...
+                    </span>
+                  </div>
+                </LMCard>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input Area */}
+          <div 
+            style={{
+              borderTop: `1px solid ${LMDesignSystem.colors.grayTint10}`,
+              padding: window.innerWidth < 768 ? LMDesignSystem.spacing.md : LMDesignSystem.spacing.lg,
+              backgroundColor: LMDesignSystem.colors.white
+            }}
+          >
+            <div style={{ 
+              display: 'flex', 
+              gap: LMDesignSystem.spacing.md,
+              flexDirection: window.innerWidth < 480 ? 'column' : 'row'
+            }}>
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                placeholder="Ask about claims, quotes, policy details, or billing..."
+                style={{
+                  flex: 1,
+                  border: `1px solid ${LMDesignSystem.colors.grayTint10}`,
+                  borderRadius: LMDesignSystem.borderRadius.md,
+                  padding: window.innerWidth < 768 ? LMDesignSystem.spacing.sm : LMDesignSystem.spacing.md,
+                  fontSize: window.innerWidth < 768 ? '0.875rem' : '1rem',
+                  fontFamily: LMDesignSystem.typography.fontFamily.primary,
+                  outline: 'none',
+                  transition: 'border-color 0.2s ease-in-out',
+                  width: window.innerWidth < 480 ? '100%' : 'auto'
+                }}
+                onFocus={(e) => e.target.style.borderColor = LMDesignSystem.colors.libertyTeal}
+                onBlur={(e) => e.target.style.borderColor = LMDesignSystem.colors.grayTint10}
+              />
+              <LMButton
+                variant="primary"
+                onClick={() => handleSendMessage()}
+                disabled={!inputValue.trim() || isTyping}
+                fullWidth={window.innerWidth < 480}
+              >
+                <Send size={18} />
+                {window.innerWidth < 480 && ' Send'}
+              </LMButton>
+            </div>
+            
+            {/* Quick Actions */}
+            <div style={{ 
+              marginTop: LMDesignSystem.spacing.md, 
+              display: 'grid',
+              gridTemplateColumns: window.innerWidth < 480 ? '1fr' : 
+                                   window.innerWidth < 768 ? 'repeat(2, 1fr)' : 
+                                   'repeat(4, 1fr)',
+              gap: LMDesignSystem.spacing.sm
+            }}>
+              <LMButton
+                variant="suggestion"
+                onClick={() => handleSendMessage("I need to file a claim")}
+                disabled={false}
+                fullWidth={true}
+                style={{
+                  backgroundColor: LMDesignSystem.colors.yellowTint60
+                }}
+              >File Claim
+              </LMButton>
+              <LMButton
+                variant="suggestion"
+                onClick={() => handleSendMessage("I want a quote for auto insurance")}
+                disabled={false}
+                fullWidth={true}
+                style={{
+                  backgroundColor: LMDesignSystem.colors.yellowTint60
+                }}
+              >
+                Get Quote
+              </LMButton>
+              <LMButton
+                variant="suggestion"
+                onClick={() => handleSendMessage("Help me understand my policy")}
+                disabled={false}
+                fullWidth={true}
+                style={{
+                  backgroundColor: LMDesignSystem.colors.yellowTint60
+                }}
+              >
+                Policy Help
+              </LMButton>
+              <LMButton
+                variant="suggestion"
+                onClick={() => handleSendMessage("I need help with billing and payments")}
+                disabled={false}
+                fullWidth={true}
+                style={{
+                  backgroundColor: LMDesignSystem.colors.yellowTint60
+                }}
+              >
+                Billing Help
+              </LMButton>
+            </div>
+            
+            <div style={{
+              marginTop: LMDesignSystem.spacing.md,
+              fontSize: window.innerWidth < 768 ? '0.625rem' : '0.75rem',
+              color: LMDesignSystem.colors.libertyDarkGray,
+              textAlign: 'center'
+            }}>
+              Demo by Mirabelle Doiron - Showcasing AI UX Best Practices for Insurance
+            </div>
+          </div>
         </div>
+
+        {/* Sidebar - Demo Mode Selector */}
+        {window.innerWidth >= 768 && (
+          <div style={{
+            width: '280px',
+            borderLeft: `1px solid ${LMDesignSystem.colors.grayTint10}`,
+            backgroundColor: LMDesignSystem.colors.white,
+            padding: LMDesignSystem.spacing.lg,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: LMDesignSystem.spacing.lg
+          }}>
+            {/* AI Mode Toggle */}
+            <div style={{
+              padding: LMDesignSystem.spacing.md,
+              backgroundColor: LMDesignSystem.colors.libertyAtmosphericWhite,
+              borderRadius: LMDesignSystem.borderRadius.md,
+              border: `1px solid ${LMDesignSystem.colors.grayTint10}`
+            }}>
+              <div style={{
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: LMDesignSystem.colors.libertyBlue,
+                marginBottom: LMDesignSystem.spacing.sm
+              }}>
+                Demo Mode Selector
+              </div>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: LMDesignSystem.spacing.sm
+              }}>
+                {(['claude', 'rule-based', 'auto'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setAiMode(mode)}
+                    style={{
+                      padding: '8px 12px',
+                      fontSize: '0.75rem',
+                      borderRadius: LMDesignSystem.borderRadius.sm,
+                      border: `1px solid ${aiMode === mode ? LMDesignSystem.colors.libertyBlue : LMDesignSystem.colors.libertyDarkGray}`,
+                      backgroundColor: aiMode === mode ? LMDesignSystem.colors.libertyBlue : 'white',
+                      color: aiMode === mode ? 'white' : LMDesignSystem.colors.libertyBlue,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      textTransform: 'capitalize',
+                      textAlign: 'left'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (aiMode !== mode) {
+                        e.currentTarget.style.backgroundColor = LMDesignSystem.colors.libertyTeal;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (aiMode !== mode) {
+                        e.currentTarget.style.backgroundColor = 'white';
+                      }
+                    }}
+                  >
+                    {mode === 'claude' ? 'Claude AI' : mode === 'rule-based' ? 'Rule-based' : 'Auto'}
+                  </button>
+                ))}
+              </div>
+              <div style={{
+                fontSize: '0.625rem',
+                color: LMDesignSystem.colors.libertyDarkGray,
+                marginTop: LMDesignSystem.spacing.sm,
+                fontStyle: 'italic'
+              }}>
+                {aiMode === 'claude' ? 'Forces Claude API responses' :
+                 aiMode === 'rule-based' ? 'Uses local rule-based system' :
+                 'Automatically chooses best available option'}
+              </div>
+            </div>
+
+            {/* API Status */}
+            <div style={{
+              padding: LMDesignSystem.spacing.md,
+              backgroundColor: LMDesignSystem.colors.libertyAtmosphericWhite,
+              borderRadius: LMDesignSystem.borderRadius.md,
+              border: `1px solid ${LMDesignSystem.colors.grayTint10}`
+            }}>
+              <div style={{
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: LMDesignSystem.colors.libertyBlue,
+                marginBottom: LMDesignSystem.spacing.sm
+              }}>
+                API Status
+              </div>
+              <div style={{
+                fontSize: '0.75rem',
+                color: LMDesignSystem.colors.libertyDarkGray
+              }}>
+                <div>Claude API: {claudeAPI.isAPIAvailable() ? 'Available' : 'Not Available'}</div>
+                <div>Model: {claudeAPI.getAPIStatus().model}</div>
+                <div>Current Mode: {aiMode}</div>
+              </div>
+            </div>
+
+            {/* Mobile Demo Mode Selector (hidden on desktop) */}
+            <div style={{
+              display: 'none',
+              padding: LMDesignSystem.spacing.md,
+              backgroundColor: LMDesignSystem.colors.libertyAtmosphericWhite,
+              borderRadius: LMDesignSystem.borderRadius.md,
+              border: `1px solid ${LMDesignSystem.colors.grayTint10}`
+            }}>
+              <div style={{
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: LMDesignSystem.colors.libertyBlue,
+                marginBottom: LMDesignSystem.spacing.sm
+              }}>
+                Demo Mode (Mobile)
+              </div>
+              <div style={{
+                display: 'flex',
+                gap: LMDesignSystem.spacing.sm,
+                flexWrap: 'wrap'
+              }}>
+                {(['claude', 'rule-based', 'auto'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setAiMode(mode)}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '0.625rem',
+                      borderRadius: LMDesignSystem.borderRadius.sm,
+                      border: `1px solid ${aiMode === mode ? LMDesignSystem.colors.libertyBlue : LMDesignSystem.colors.libertyDarkGray}`,
+                      backgroundColor: aiMode === mode ? LMDesignSystem.colors.libertyBlue : 'white',
+                      color: aiMode === mode ? 'white' : LMDesignSystem.colors.libertyBlue,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      textTransform: 'capitalize'
+                    }}
+                  >
+                    {mode === 'claude' ? 'Claude AI' : mode === 'rule-based' ? 'Rule-based' : 'Auto'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* CSS Animations */}
