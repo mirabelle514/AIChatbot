@@ -1,4 +1,4 @@
-// Claude API Service for Liberty Mutual AI Chatbot Demo
+// Claude API Service for Insurance Company AI Chatbot Demo
 // This service handles all communication with Claude API
 
 class ClaudeAPIService {
@@ -89,7 +89,7 @@ class ClaudeAPIService {
 
   // Build system prompt for Claude
   buildSystemPrompt(context) {
-    return `You are Liberty Assistant, an AI-powered insurance customer service representative for Liberty Mutual Insurance Company. 
+    return `You are Insurance Assistant, an AI-powered insurance customer service representative for Insurance Company. 
 
 Your role is to help customers with:
 - Filing and managing insurance claims
@@ -100,14 +100,23 @@ Your role is to help customers with:
 
 Key Guidelines:
 1. Always maintain a professional, helpful, and empathetic tone
-2. Use Liberty Mutual's brand voice - trustworthy, knowledgeable, and customer-focused
+2. Use Insurance Company's brand voice - trustworthy, knowledgeable, and customer-focused
 3. Ask clarifying questions when needed to provide accurate assistance
 4. Provide specific, actionable information rather than generic responses
 5. Maintain conversation context and remember previous interactions
-6. Offer relevant suggestions for next steps
-7. If you don't know something specific about Liberty Mutual policies, suggest contacting an agent
+6. When asking for specific information (like incident details, vehicle info, etc.), provide relevant answer choices as suggestions
+7. Offer contextual suggestions that directly answer the questions you're asking
+8. If you don't know something specific about Insurance Company policies, suggest contacting an agent
 
 Current Context: ${JSON.stringify(context, null, 2)}
+
+Important: When helping customers file claims, ask for specific information and provide relevant answer choices. For example:
+- If asking "What type of incident occurred?", suggest: Auto accident, Property damage, Theft, Natural disaster
+- If asking "When did it happen?", suggest: Today, Yesterday, This week, Last week
+- If asking "Where did it occur?", suggest: At home, On the road, At work, Other location
+- If asking "Are there any injuries?", suggest: No injuries, Minor injuries, Serious injuries, Not sure yet
+
+CRITICAL: Always provide suggestions that directly answer the questions you're asking, not generic actions. The suggestions should be the actual answers the customer can choose from.
 
 Remember: You're helping real customers with real insurance needs. Be thorough, accurate, and helpful.`;
   }
@@ -167,26 +176,70 @@ Remember: You're helping real customers with real insurance needs. Be thorough, 
   extractSuggestions(responseText) {
     const suggestions = [];
     
-    // Look for common patterns that indicate actionable next steps
-    if (responseText.includes('file a claim') || responseText.includes('start a claim')) {
-      suggestions.push('File a claim');
+    // Check if we're in a claims flow asking for incident details
+    if (responseText.includes('What type of incident occurred') || 
+        responseText.includes('When did it happen') || 
+        responseText.includes('Where did it occur') || 
+        responseText.includes('Are there any injuries')) {
+      
+      // Provide contextual suggestions for incident details
+      if (responseText.includes('What type of incident occurred')) {
+        suggestions.push('Auto accident', 'Property damage', 'Theft', 'Natural disaster');
+      }
+      if (responseText.includes('When did it happen')) {
+        suggestions.push('Today', 'Yesterday', 'This week', 'Last week');
+      }
+      if (responseText.includes('Where did it occur')) {
+        suggestions.push('At home', 'On the road', 'At work', 'Other location');
+      }
+      if (responseText.includes('Are there any injuries')) {
+        suggestions.push('No injuries', 'Minor injuries', 'Serious injuries', 'Not sure yet');
+      }
+      
+      // If we have multiple questions, provide a mix of helpful options
+      if (suggestions.length === 0) {
+        suggestions.push('Auto accident', 'Today', 'At home', 'No injuries');
+      }
     }
-    if (responseText.includes('get a quote') || responseText.includes('insurance quote')) {
-      suggestions.push('Get a quote');
+    // Check if we're asking for claim status information
+    else if (responseText.includes('claim number') || responseText.includes('policy number')) {
+      suggestions.push('I have claim number', 'I have policy number', 'I need to file new claim', 'Contact agent');
     }
-    if (responseText.includes('policy') || responseText.includes('coverage')) {
-      suggestions.push('Policy questions');
+    // Check if we're asking for vehicle information for quotes
+    else if (responseText.includes('What type of vehicle') || responseText.includes('How you use your vehicle')) {
+      suggestions.push('Sedan', 'SUV', 'Truck', 'Motorcycle');
     }
-    if (responseText.includes('billing') || responseText.includes('payment')) {
-      suggestions.push('Payment help');
+    // Check if we're asking for home information for quotes
+    else if (responseText.includes('Type of home') || responseText.includes('Year built')) {
+      suggestions.push('Single-family home', 'Condo', 'Townhouse', 'Mobile home');
     }
-    if (responseText.includes('contact') || responseText.includes('agent')) {
-      suggestions.push('Contact agent');
+    // Check if we're asking for payment verification
+    else if (responseText.includes('verify your identity') || responseText.includes('policy number') || responseText.includes('SSN')) {
+      suggestions.push('Policy number', 'Last 4 SSN', 'Phone number', 'Email address');
     }
-    
-    // If no specific suggestions found, provide general ones
-    if (suggestions.length === 0) {
-      suggestions.push('File a claim', 'Get a quote', 'Policy questions', 'Payment help');
+    // Default to general action suggestions
+    else {
+      // Look for common patterns that indicate actionable next steps
+      if (responseText.includes('file a claim') || responseText.includes('start a claim')) {
+        suggestions.push('File a claim');
+      }
+      if (responseText.includes('get a quote') || responseText.includes('insurance quote')) {
+        suggestions.push('Get a quote');
+      }
+      if (responseText.includes('policy') || responseText.includes('coverage')) {
+        suggestions.push('Policy questions');
+      }
+      if (responseText.includes('billing') || responseText.includes('payment')) {
+        suggestions.push('Payment help');
+      }
+      if (responseText.includes('contact') || responseText.includes('agent')) {
+        suggestions.push('Contact agent');
+      }
+      
+      // If no specific suggestions found, provide general ones
+      if (suggestions.length === 0) {
+        suggestions.push('File a claim', 'Get a quote', 'Policy questions', 'Payment help');
+      }
     }
     
     return suggestions.slice(0, 4); // Limit to 4 suggestions
@@ -219,11 +272,75 @@ Remember: You're helping real customers with real insurance needs. Be thorough, 
     
     // Enhanced fallback logic with more comprehensive responses
     if (message.includes('claim') || message.includes('accident') || message.includes('damage')) {
+      // Check if we're in a specific step of the claims process
+      if (context.flow === 'claims' && context.step === 'incident_type') {
+        // User has already selected incident type, now ask for timing
+        if (message.includes('auto accident') || message.includes('car') || message.includes('vehicle')) {
+          return {
+            content: "Thank you for reporting the auto accident. When did this accident occur?",
+            suggestions: ["Today", "Yesterday", "This week", "More than a week ago"],
+            context: { flow: 'claims', step: 'timing', incidentType: 'auto_accident' }
+          };
+        } else if (message.includes('property') || message.includes('home') || message.includes('house')) {
+          return {
+            content: "Thank you for reporting the property damage. When did this incident occur?",
+            suggestions: ["Today", "Yesterday", "This week", "More than a week ago"],
+            context: { flow: 'claims', step: 'timing', incidentType: 'property_damage' }
+          };
+        } else if (message.includes('theft')) {
+          return {
+            content: "Thank you for reporting the theft. When did you discover the theft?",
+            suggestions: ["Today", "Yesterday", "This week", "More than a week ago"],
+            context: { flow: 'claims', step: 'timing', incidentType: 'theft' }
+          };
+        } else if (message.includes('natural disaster') || message.includes('weather')) {
+          return {
+            content: "Thank you for reporting the weather-related damage. When did this damage occur?",
+            suggestions: ["Today", "Yesterday", "This week", "More than a week ago"],
+            context: { flow: 'claims', step: 'timing', incidentType: 'weather_damage' }
+          };
+        }
+      }
+      
+      if (context.flow === 'claims' && context.step === 'timing') {
+        // User has provided timing, now ask for location
+        if (message.includes('today') || message.includes('yesterday') || message.includes('week')) {
+          return {
+            content: "Thank you. Where did the incident occur?",
+            suggestions: ["At home", "On the road", "At work", "Other location"],
+            context: { flow: 'claims', step: 'location', incidentType: context.incidentType, when: message }
+          };
+        }
+      }
+      
+      if (context.flow === 'claims' && context.step === 'location') {
+        // User has provided location, now ask about injuries
+        if (message.includes('home') || message.includes('road') || message.includes('work') || message.includes('other')) {
+          return {
+            content: "Thank you. Are there any injuries to report?",
+            suggestions: ["No injuries", "Minor injuries", "Serious injuries", "Not sure yet"],
+            context: { flow: 'claims', step: 'injuries', incidentType: context.incidentType, when: context.when, where: message }
+          };
+        }
+      }
+      
+      if (context.flow === 'claims' && context.step === 'injuries') {
+        // User has provided injury information, now provide next steps
+        if (message.includes('no injuries') || message.includes('minor') || message.includes('serious') || message.includes('not sure')) {
+          return {
+            content: "Thank you for providing the incident details. I'm creating your claim now.\n\nYour claim number is: CLM-" + Math.random().toString().slice(2, 11) + "\n\nNext steps:\n• A claims adjuster will contact you within 24 hours\n• You can upload photos and documents through our mobile app\n• Keep any receipts for expenses related to this incident\n\nIs there anything else you'd like to add about the incident?",
+            suggestions: ["Upload photos", "Add more details", "Check claim status", "Contact adjuster"],
+            context: { flow: 'claims', step: 'complete', claimNumber: 'CLM-' + Math.random().toString().slice(2, 11) }
+          };
+        }
+      }
+      
+      // Initial claims entry
       if (message.includes('file') || message.includes('start') || message.includes('new')) {
         return {
-          content: "I can help you file a new claim. To get started, I'll need some basic information:\n\n• What type of incident occurred? (auto accident, property damage, theft, etc.)\n• When did it happen?\n• Where did it occur?\n• Are there any injuries?\n\nWould you like to start the claims process now?",
-          suggestions: ["Start claim process", "Auto accident", "Property damage", "Check claim status"],
-          context: { flow: 'claims', step: 'initial', type: 'new' }
+          content: "I can help you file a new claim. To get started, I'll need some basic information:\n\n• What type of incident occurred? (auto accident, property damage, theft, etc.)\n• When did it happen?\n• Where did it occur?\n• Are there any injuries?\n\nLet's start with the first question: What type of incident occurred?",
+          suggestions: ["Auto accident", "Property damage", "Theft", "Natural disaster"],
+          context: { flow: 'claims', step: 'incident_type', type: 'new' }
         };
       } else if (message.includes('status') || message.includes('check') || message.includes('existing')) {
         return {
@@ -293,7 +410,7 @@ Remember: You're helping real customers with real insurance needs. Be thorough, 
         };
       } else if (message.includes('method') || message.includes('how') || message.includes('way')) {
         return {
-          content: "Liberty Mutual offers several convenient payment options:\n\n• Online through your account\n• Automatic bank draft\n• Credit/debit card\n• Check by mail\n• Phone payments\n\nWhich payment method would you prefer to set up?",
+          content: "Insurance Company offers several convenient payment options:\n\n• Online through your account\n• Automatic bank draft\n• Credit/debit card\n• Check by mail\n• Phone payments\n\nWhich payment method would you prefer to set up?",
           suggestions: ["Online account", "Bank draft", "Credit card", "Check by mail"],
           context: { flow: 'billing', step: 'payment_method' }
         };
@@ -308,7 +425,7 @@ Remember: You're helping real customers with real insurance needs. Be thorough, 
     
     if (message.includes('contact') || message.includes('agent') || message.includes('call') || message.includes('speak')) {
       return {
-        content: "I'm here to help, but if you'd prefer to speak with a live agent, you have several options:\n\n• Call our customer service: 1-800-LIBERTY\n• Schedule a call back at your convenience\n• Chat with an agent online\n• Visit a local office\n\nWould you like me to help you with something specific, or would you prefer to connect with an agent?",
+                  content: "I'm here to help, but if you'd prefer to speak with a live agent, you have several options:\n\n• Call our customer service: 1-800-INSURANCE\n• Schedule a call back at your convenience\n• Chat with an agent online\n• Visit a local office\n\nWould you like me to help you with something specific, or would you prefer to connect with an agent?",
         suggestions: ["Keep chatting", "Call customer service", "Schedule call back", "Find local office"],
         context: { flow: 'contact', step: 'agent_connection' }
       };
@@ -316,7 +433,7 @@ Remember: You're helping real customers with real insurance needs. Be thorough, 
     
     if (message.includes('hello') || message.includes('hi') || message.includes('help') || message.includes('start')) {
       return {
-        content: "Hello! I'm Liberty Assistant, your AI-powered insurance support specialist. I'm here to help you with:\n\n• Filing and managing insurance claims\n• Getting personalized insurance quotes\n• Understanding your policy and coverage\n• Billing and payment assistance\n• General insurance questions\n\nWhat can I help you with today?",
+                  content: "Hello! I'm Insurance Assistant, your AI-powered insurance support specialist. I'm here to help you with:\n\n• Filing and managing insurance claims\n• Getting personalized insurance quotes\n• Understanding your policy and coverage\n• Billing and payment assistance\n• General insurance questions\n\nWhat can I help you with today?",
         suggestions: ["File a claim", "Get a quote", "Policy questions", "Payment help"],
         context: { flow: 'general', step: 'greeting' }
       };

@@ -21,6 +21,11 @@ dist/
 *.swp
 *.swo
 
+# Documentation and setup files
+CLAUDE_SETUP.md
+CPANEL_DEPLOYMENT.md
+setup-claude.md
+
 # OS generated files
 .DS_Store
 .DS_Store?

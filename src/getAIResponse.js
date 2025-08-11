@@ -289,7 +289,7 @@ console.log('getAIResponse called with:', { userMessage, message, currentFlow, c
                       : 'experienced driver';
       
       return {
-        content: `Thank you! Based on your ${experience} experience in Fox Point, WI, here's your personalized auto insurance quote:\n\n**Your Liberty Mutual Auto Quote**\n\n**Monthly Premium: $89.50**\n**Annual Premium: $1,074**\n\n**Coverage Includes:**\n• Liability: $100,000/$300,000\n• Collision: $500 deductible\n• Comprehensive: $500 deductible\n• Uninsured Motorist: $100,000/$300,000\n• Roadside Assistance: Included\n\n**Liberty Mutual Benefits:**\n• Accident Forgiveness (first accident)\n• New Car Replacement\n• Better Car Replacement\n• 24/7 Claims Support\n\nWould you like to proceed with this quote or make any adjustments?`,
+        content: `Thank you! Based on your ${experience} experience in Fox Point, WI, here's your personalized auto insurance quote:\n\n**Your Insurance Company Auto Quote**\n\n**Monthly Premium: $89.50**\n**Annual Premium: $1,074**\n\n**Coverage Includes:**\n• Liability: $100,000/$300,000\n• Collision: $500 deductible\n• Comprehensive: $500 deductible\n• Uninsured Motorist: $100,000/$300,000\n• Roadside Assistance: Included\n\n**Insurance Company Benefits:**\n• Accident Forgiveness (first accident)\n• New Car Replacement\n• Better Car Replacement\n• 24/7 Claims Support\n\nWould you like to proceed with this quote or make any adjustments?`,
         suggestions: ["Proceed with quote", "Adjust coverage", "Compare with other companies", "Speak to an agent"],
         context: { flow: 'quote', step: 'final_quote', location: 'Fox Point, WI', coverage: 'auto', monthlyPremium: '$89.50' }
       };
@@ -339,7 +339,7 @@ console.log('getAIResponse called with:', { userMessage, message, currentFlow, c
     
     if (message.includes('bundle') || message.includes('see home insurance too')) {
       return {
-        content: "Bundle & Save Opportunity!\n\nCombining your auto and home insurance with Liberty Mutual gives you:\n\nTotal Monthly Savings:\n• Auto: $78-95 → $62-76 (20% off)\n• Home: $67-100 → $54-80 (20% off)\n• Total: $116-156/month\n• Annual Savings: $350-450\n\nAdditional Bundle Benefits:\n• Single deductible for claims affecting both\n• One point of contact for all policies\n• Simplified billing\n• 24/7 support for all your insurance needs\n\nReady to start your application?",
+        content: "Bundle & Save Opportunity!\n\nCombining your auto and home insurance with Insurance Company gives you:\n\nTotal Monthly Savings:\n• Auto: $78-95 → $62-76 (20% off)\n• Home: $67-100 → $54-80 (20% off)\n• Total: $116-156/month\n• Annual Savings: $350-450\n\nAdditional Bundle Benefits:\n• Single deductible for claims affecting both\n• One point of contact for all policies\n• Simplified billing\n• 24/7 support for all your insurance needs\n\nReady to start your application?",
         suggestions: ["Yes, start my application", "I need more time to decide", "Compare to other companies", "Speak to an agent"],
         context: { flow: 'quote', step: 'bundle_ready', autoPremium: '$62-76', homePremium: '$54-80' }
       };
@@ -443,7 +443,7 @@ console.log('getAIResponse called with:', { userMessage, message, currentFlow, c
   // Help requests
   if (message.includes('help') && !currentFlow) {
     return {
-      content: "I'm here to help with all your Liberty Mutual insurance needs!\n\nPopular requests:\n• File or check a claim\n• Get insurance quotes\n• Review your policy\n• Make a payment\n• Update your information\n• Speak with an agent\n\nQuick tip: You can ask me questions in plain English, like \"How much would car insurance cost?\" or \"I need to add my teenager to my policy.\"\n\nWhat can I help you with today?",
+      content: "I'm here to help with all your Insurance Company insurance needs!\n\nPopular requests:\n• File or check a claim\n• Get insurance quotes\n• Review your policy\n• Make a payment\n• Update your information\n• Speak with an agent\n\nQuick tip: You can ask me questions in plain English, like \"How much would car insurance cost?\" or \"I need to add my teenager to my policy.\"\n\nWhat can I help you with today?",
       suggestions: ["File a claim", "Get a quote", "Review my policy", "Make a payment"],
       context: { flow: 'general', step: 'help_menu' }
     };
@@ -452,7 +452,7 @@ console.log('getAIResponse called with:', { userMessage, message, currentFlow, c
   // Greetings
   if (message.includes('hi') || message.includes('hello') || message.includes('hey')) {
     return {
-      content: "Hello! Great to meet you! I'm Liberty Assistant, and I'm here to make insurance simple and straightforward.\n\n**Liberty Mutual - Protecting What Matters Most**\n\nI can help you with:\n• Filing claims quickly and easily\n• Getting instant quotes\n• Understanding your coverage\n• Managing payments\n• Updating your information\n\n**Progressive Approach:** I'll guide you step-by-step, only asking for what's needed when it's needed.\n\nWhether you're a current customer or shopping for new coverage, I'm here to help! What brings you here today?",
+      content: "Hello! Great to meet you! I'm Insurance Assistant, and I'm here to make insurance simple and straightforward.\n\n**Insurance Company - Protecting What Matters Most**\n\nI can help you with:\n• Filing claims quickly and easily\n• Getting instant quotes\n• Understanding your coverage\n• Managing payments\n• Updating your information\n\n**Progressive Approach:** I'll guide you step-by-step, only asking for what's needed when it's needed.\n\nWhether you're a current customer or shopping for new coverage, I'm here to help! What brings you here today?",
       suggestions: ["I need insurance", "I'm a current customer", "I have a question", "Just browsing"],
       context: { flow: 'greeting', step: 'initial_response', progressiveDisclosure: true }
     };

@@ -1,6 +1,6 @@
-# Liberty Mutual AI Chatbot Demo
+# Insurance Company AI Chatbot Demo
 
-A modern, accessible AI chatbot interface showcasing UX best practices for insurance customer service. Built with React, TypeScript, and Liberty Mutual's design system.
+A modern, accessible AI chatbot interface showcasing UX best practices for insurance customer service. Built with React, TypeScript, and Insurance Company's design system.
 
 ## Project Overview
 
@@ -9,7 +9,7 @@ This demo showcases how AI-powered chatbots can enhance customer service in the 
 ### Key Features
 
 - **AI-Powered Conversations** - Intelligent responses for insurance-related queries
-- **Liberty Mutual Design System** - Consistent branding and visual hierarchy
+- **Insurance Company Design System** - Consistent branding and visual hierarchy
 - **Responsive Design** - Optimized for desktop, tablet, and mobile devices
 - **Accessibility First** - WCAG compliant with keyboard navigation and screen reader support
 - **Smart Suggestions** - Contextual quick-action buttons for common tasks
@@ -56,7 +56,7 @@ This demo showcases how AI-powered chatbots can enhance customer service in the 
 
 ## Design System
 
-### Liberty Mutual Brand Colors
+### Insurance Company Brand Colors
 
 ```css
 /* Primary Colors */
@@ -73,7 +73,7 @@ This demo showcases how AI-powered chatbots can enhance customer service in the 
 
 ### Typography
 
-- **Primary Font**: Guardian Sans (Liberty Mutual's brand font)
+- **Primary Font**: Guardian Sans (Insurance Company's brand font)
 - **Fallback**: System fonts for optimal performance
 - **Weights**: Light (300), Regular (400), Semibold (600), Bold (700)
 
@@ -115,8 +115,7 @@ The project includes reusable design system components:
 
 ### File Structure
 
-```
-
+```jsx
 src/
 ├── App.tsx              # Main application component
 ├── getAIResponse.js     # AI response logic and conversation handling
@@ -126,7 +125,7 @@ src/
 
 ### Key Components
 
-#### LibertyMutualAIDemo
+#### InsuranceCompanyAIDemo
 
 The main application component that orchestrates:
 
@@ -182,7 +181,7 @@ The main application component that orchestrates:
 
 ### 5. **Brand Consistency**
 
-- Liberty Mutual color palette
+- Insurance Company color palette
 - Typography guidelines
 - Icon usage standards
 - Spacing and layout rules
@@ -252,23 +251,23 @@ npm run build
 
 ## License
 
-This project is a demo showcasing UX best practices for AI chatbots in the insurance industry. The design system and components are inspired by Liberty Mutual's brand guidelines.
+This project is a demo showcasing UX best practices for AI chatbots in the insurance industry. The design system and components are inspired by Insurance Company's brand guidelines.
 
 ## Author
 
 **Mirabelle Doiron**
 
 - UX Engineer
-- Specializing in AI/ML interfaces and design systems
+- Specializing in AI interfaces and design systems
 - [GitHub](https://github.com/mirabelle514)
 
 ## Acknowledgments
 
-- Liberty Mutual for brand inspiration
+- Insurance Company for brand inspiration
 - React and TypeScript communities
 - Accessibility advocates and guidelines
 - AI/UX research and best practices
 
 ---
 
-**Note**: This is a demo project showcasing UX best practices. The AI responses are simulated and do not represent actual Liberty Mutual services or policies.
+**Note**: This is a demo project showcasing AI best practices. The AI responses are simulated and do not represent actual Insurance Company services or policies. You can see [the live example here](chatbotdemo.co)

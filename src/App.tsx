@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, MessageCircle, User, Bot, Shield, Car, Home, Phone } from 'lucide-react';
 import claudeAPI from './claudeAPI';
 
-// Liberty Mutual Design System Tokens
+// Insurance Company Design System Tokens
 const LMDesignSystem = {
   colors: {
     // Primary Colors
@@ -207,12 +207,12 @@ const LMIcon = ({ name, size = 20, color = LMDesignSystem.colors.libertyBlue, bg
   return <IconComponent size={size} color={color} {...props} />;
 };
 
-const LibertyMutualAIDemo = () => {
+const InsuranceCompanyAIDemo = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
       type: 'bot',
-      content: "Hi! I'm Liberty Assistant, here to help you with your insurance needs. I can help you file a claim, get a quote, or answer policy questions. What can I help you with today?",
+      content: "Hi! I'm Insurance Assistant, here to help you with your insurance needs. I can help you file a claim, get a quote, or answer policy questions. What can I help you with today?",
       timestamp: new Date(),
       suggestions: ["File a claim", "Get a quote", "Policy questions", "Payment help"],
       aiMode: 'auto'
@@ -243,7 +243,7 @@ const LibertyMutualAIDemo = () => {
       {
         id: Date.now(),
         type: 'bot',
-        content: "Hi! I'm Liberty Assistant, here to help you with your insurance needs. I can help you file a claim, get a quote, or answer policy questions. What can I help you with today?",
+        content: "Hi! I'm Insurance Assistant, here to help you with your insurance needs. I can help you file a claim, get a quote, or answer policy questions. What can I help you with today?",
         timestamp: new Date(),
         suggestions: ["File a claim", "Get a quote", "Policy questions", "Payment help"],
         aiMode: 'auto'
@@ -390,7 +390,7 @@ const LibertyMutualAIDemo = () => {
         minHeight: window.innerWidth < 768 ? '100vh' : 'auto'
       }}
     >
-      {/* Header - Following Liberty Mutual Brand Guidelines */}
+              {/* Header - Following Insurance Company Brand Guidelines */}
       <div 
         style={{
           background: `linear-gradient(135deg, ${LMDesignSystem.colors.libertyBlue} 0%, ${LMDesignSystem.colors.libertyDarkTeal} 100%)`,
@@ -425,7 +425,7 @@ const LibertyMutualAIDemo = () => {
               margin: 0,
               color: LMDesignSystem.colors.white
             }}>
-              Liberty Assistant
+              Insurance Assistant
             </h1>
             <p style={{ 
               fontSize: window.innerWidth < 768 ? '0.75rem' : '0.875rem',
@@ -516,6 +516,103 @@ const LibertyMutualAIDemo = () => {
              aiMode === 'rule-based' ? 'Uses local rule-based system' :
              'Automatically chooses best available option'}
           </div>
+          
+          {/* Mobile Detailed Mode Explanations */}
+          {aiMode === 'claude' && (
+            <div style={{
+              marginTop: LMDesignSystem.spacing.sm,
+              padding: LMDesignSystem.spacing.md,
+              backgroundColor: LMDesignSystem.colors.grayTint10,
+              borderRadius: LMDesignSystem.borderRadius.sm,
+              border: `1px solid ${LMDesignSystem.colors.grayTint10}`
+            }}>
+              <div style={{
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: LMDesignSystem.colors.libertyBlue,
+                marginBottom: LMDesignSystem.spacing.sm,
+                textAlign: 'center'
+              }}>
+                Claude AI Mode
+              </div>
+              <div style={{
+                fontSize: '0.75rem',
+                color: LMDesignSystem.colors.libertyDarkGray,
+                lineHeight: '1.5',
+                textAlign: 'center'
+              }}>
+                <strong>What it is:</strong> Direct integration with Anthropic's Claude AI API<br/>
+                <strong>How it works:</strong> Sends your message to Claude's brain, gets back intelligent response<br/>
+                <strong>Benefits:</strong> Most sophisticated conversations, understands complex scenarios, provides personalized suggestions<br/>
+                <strong>Best for:</strong> High-quality AI responses when API is available<br/>
+                <strong>Security:</strong> API key encryption, message sanitization, Claude's built-in safety filters
+              </div>
+            </div>
+          )}
+          
+          {aiMode === 'rule-based' && (
+            <div style={{
+              marginTop: LMDesignSystem.spacing.sm,
+              padding: LMDesignSystem.spacing.md,
+              backgroundColor: LMDesignSystem.colors.grayTint10,
+              borderRadius: LMDesignSystem.borderRadius.sm,
+              border: `1px solid ${LMDesignSystem.colors.grayTint10}`
+            }}>
+              <div style={{
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: LMDesignSystem.colors.libertyBlue,
+                marginBottom: LMDesignSystem.spacing.sm,
+                textAlign: 'center'
+              }}>
+                Rule-based Mode
+              </div>
+              <div style={{
+                fontSize: '0.75rem',
+                color: LMDesignSystem.colors.libertyDarkGray,
+                lineHeight: '1.5',
+                textAlign: 'center'
+              }}>
+                <strong>What it is:</strong> Local, predefined response system using if-then logic<br/>
+                <strong>How it works:</strong> Matches your words to preset answers, like a smart FAQ system<br/>
+                <strong>Benefits:</strong> Always available, predictable responses, fast, no external costs<br/>
+                <strong>Best for:</strong> Reliable fallback when Claude API is unavailable<br/>
+                <strong>Security:</strong> No external data transmission, input validation, controlled response patterns
+              </div>
+            </div>
+          )}
+          
+          {aiMode === 'auto' && (
+            <div style={{
+              marginTop: LMDesignSystem.spacing.sm,
+              padding: LMDesignSystem.spacing.md,
+              backgroundColor: LMDesignSystem.colors.grayTint10,
+              borderRadius: LMDesignSystem.borderRadius.sm,
+              border: `1px solid ${LMDesignSystem.colors.grayTint10}`
+            }}>
+              <div style={{
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: LMDesignSystem.colors.libertyBlue,
+                marginBottom: LMDesignSystem.spacing.sm,
+                textAlign: 'center'
+              }}>
+                Auto Mode
+              </div>
+              <div style={{
+                fontSize: '0.75rem',
+                color: LMDesignSystem.colors.libertyDarkGray,
+                lineHeight: '1.5',
+                textAlign: 'center'
+              }}>
+                <strong>What it is:</strong> Intelligent fallback system that automatically chooses the best available option<br/>
+                <strong>How it works:</strong> Tries Claude first, if that fails, switches to rule-based automatically<br/>
+                <strong>Benefits:</strong> Best of both worlds, automatic failover, seamless user experience<br/>
+                <strong>Best for:</strong> Production environments requiring reliability and quality<br/>
+                <strong>Security:</strong> Secure fallback logic, no data leakage, maintains security standards across modes
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -792,7 +889,7 @@ const LibertyMutualAIDemo = () => {
               color: LMDesignSystem.colors.libertyDarkGray,
               textAlign: 'center'
             }}>
-              Demo by Mirabelle Doiron - Showcasing AI UX Best Practices for Insurance
+              Demo by Mirabelle Doiron - Showcasing AI UX Best Practices 
             </div>
           </div>
         </div>
@@ -869,6 +966,97 @@ const LibertyMutualAIDemo = () => {
                  aiMode === 'rule-based' ? 'Uses local rule-based system' :
                  'Automatically chooses best available option'}
               </div>
+              
+              {/* Detailed Mode Explanations */}
+              {aiMode === 'claude' && (
+                <div style={{
+                  marginTop: LMDesignSystem.spacing.md,
+                  padding: LMDesignSystem.spacing.md,
+                  backgroundColor: LMDesignSystem.colors.grayTint10,
+                  borderRadius: LMDesignSystem.borderRadius.sm,
+                  border: `1px solid ${LMDesignSystem.colors.grayTint10}`
+                }}>
+                  <div style={{
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    color: LMDesignSystem.colors.libertyBlue,
+                    marginBottom: LMDesignSystem.spacing.sm
+                  }}>
+                    Claude AI Mode
+                  </div>
+                  <div style={{
+                    fontSize: '0.75rem',
+                    color: LMDesignSystem.colors.libertyDarkGray,
+                    lineHeight: '1.5'
+                  }}>
+                    <strong>What it is:</strong> Direct integration with Anthropic's Claude AI API<br/>
+                    <strong>How it works:</strong> Sends your message to Claude's brain, gets back intelligent response<br/>
+                    <strong>Benefits:</strong> Most sophisticated conversations, understands complex scenarios, provides personalized suggestions<br/>
+                    <strong>Best for:</strong> High-quality AI responses when API is available<br/>
+                    <strong>Security:</strong> API key encryption, message sanitization, Claude's built-in safety filters
+                  </div>
+                </div>
+              )}
+              
+              {aiMode === 'rule-based' && (
+                <div style={{
+                  marginTop: LMDesignSystem.spacing.md,
+                  padding: LMDesignSystem.spacing.md,
+                  backgroundColor: LMDesignSystem.colors.grayTint10,
+                  borderRadius: LMDesignSystem.borderRadius.sm,
+                  border: `1px solid ${LMDesignSystem.colors.grayTint10}`
+                }}>
+                  <div style={{
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    color: LMDesignSystem.colors.libertyBlue,
+                    marginBottom: LMDesignSystem.spacing.sm
+                  }}>
+                    Rule-based Mode
+                  </div>
+                  <div style={{
+                    fontSize: '0.75rem',
+                    color: LMDesignSystem.colors.libertyDarkGray,
+                    lineHeight: '1.5'
+                  }}>
+                    <strong>What it is:</strong> Local, predefined response system using if-then logic<br/>
+                    <strong>How it works:</strong> Matches your words to preset answers, like a smart FAQ system<br/>
+                    <strong>Benefits:</strong> Always available, predictable responses, fast, no external costs<br/>
+                    <strong>Best for:</strong> Reliable fallback when Claude API is unavailable<br/>
+                    <strong>Security:</strong> No external data transmission, input validation, controlled response patterns
+                  </div>
+                </div>
+              )}
+              
+              {aiMode === 'auto' && (
+                <div style={{
+                  marginTop: LMDesignSystem.spacing.md,
+                  padding: LMDesignSystem.spacing.md,
+                  backgroundColor: LMDesignSystem.colors.grayTint10,
+                  borderRadius: LMDesignSystem.borderRadius.sm,
+                  border: `1px solid ${LMDesignSystem.colors.grayTint10}`
+                }}>
+                  <div style={{
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    color: LMDesignSystem.colors.libertyBlue,
+                    marginBottom: LMDesignSystem.spacing.sm
+                  }}>
+                    Auto Mode
+                  </div>
+                  <div style={{
+                    fontSize: '0.75rem',
+                    color: LMDesignSystem.colors.libertyDarkGray,
+                    lineHeight: '1.5'
+                  }}>
+                    <strong>What it is:</strong> Intelligent fallback system that automatically chooses the best available option<br/>
+                    <strong>How it works:</strong> Tries Claude first, if that fails, switches to rule-based automatically<br/>
+                    <strong>Benefits:</strong> Best of both worlds, automatic failover, seamless user experience<br/>
+                    <strong>Best for:</strong> Production environments requiring reliability and quality<br/>
+                    <strong>Security:</strong> Secure fallback logic, no data leakage, maintains security standards across modes
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* API Status */}
@@ -958,4 +1146,4 @@ const LibertyMutualAIDemo = () => {
   );
 };
 
-export default LibertyMutualAIDemo;
+export default InsuranceCompanyAIDemo;
