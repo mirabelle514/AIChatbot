@@ -215,6 +215,21 @@ const LibertyMutualAIDemo = () => {
     scrollToBottom();
   }, [messages, isTyping]);
 
+  const resetConversation = () => {
+    setMessages([
+      {
+        id: Date.now(),
+        type: 'bot',
+        content: "Hi! I'm Liberty Assistant, here to help you with your insurance needs. I can help you file a claim, get a quote, or answer policy questions. What can I help you with today?",
+        timestamp: new Date(),
+        suggestions: ["File a claim", "Get a quote", "Policy questions", "Payment help"]
+      }
+    ]);
+    setConversationContext({});
+    setInputValue('');
+    setIsTyping(false);
+  };
+
 
   const handleSendMessage = async (messageText: string | null = null) => {
     const textToSend = messageText || inputValue.trim();
@@ -233,30 +248,55 @@ const LibertyMutualAIDemo = () => {
     setInputValue('');
     setIsTyping(true);
 
-    // Simulate AI processing time
-    setTimeout(() => {
-      console.log('Current context:', conversationContext);
-      console.log('User message:', textToSend);
-      
-      const aiResponse = getAIResponse(textToSend, conversationContext);
-      console.log('AI Response:', aiResponse);
-      
-      const botMessage = {
+    try {
+      // Simulate AI processing time
+      setTimeout(() => {
+        console.log('Current context:', conversationContext);
+        console.log('User message:', textToSend);
+        
+        const aiResponse = getAIResponse(textToSend, conversationContext);
+        console.log('AI Response:', aiResponse);
+        
+        if (aiResponse && aiResponse.content) {
+          const botMessage = {
+            id: Date.now() + 1,
+            type: 'bot',
+            content: aiResponse.content,
+            timestamp: new Date(),
+            suggestions: aiResponse.suggestions || []
+          };
+
+          setMessages(prev => [...prev, botMessage]);
+          setConversationContext(prev => {
+            const newContext = { ...prev, ...aiResponse.context };
+            console.log('Updated context:', newContext);
+            return newContext;
+          });
+        } else {
+          // Fallback response if AI response is invalid
+          const fallbackMessage = {
+            id: Date.now() + 1,
+            type: 'bot',
+            content: "I apologize, but I'm having trouble processing that request. Let me help you with something else. What would you like to know about your insurance?",
+            timestamp: new Date(),
+            suggestions: ["File a claim", "Get a quote", "Policy questions", "Payment help"]
+          };
+          setMessages(prev => [...prev, fallbackMessage]);
+        }
+        setIsTyping(false);
+      }, 1000 + Math.random() * 1000); // Realistic response time
+    } catch (error) {
+      console.error('Error processing message:', error);
+      const errorMessage = {
         id: Date.now() + 1,
         type: 'bot',
-        content: aiResponse.content,
+        content: "I'm experiencing a technical issue. Please try again or contact our support team for assistance.",
         timestamp: new Date(),
-        suggestions: aiResponse.suggestions || []
+        suggestions: ["Try again", "File a claim", "Get a quote", "Contact support"]
       };
-
-      setMessages(prev => [...prev, botMessage]);
-      setConversationContext(prev => {
-        const newContext = { ...prev, ...aiResponse.context };
-        console.log('Updated context:', newContext);
-        return newContext;
-      });
+      setMessages(prev => [...prev, errorMessage]);
       setIsTyping(false);
-    }, 1000 + Math.random() * 1000); // Realistic response time
+    }
   };
 
   const handleSuggestionClick = (suggestion) => {
@@ -323,9 +363,22 @@ const LibertyMutualAIDemo = () => {
               color: LMDesignSystem.colors.libertyTeal,
               fontWeight: LMDesignSystem.typography.weights.regular
             }}>
-              AI-Powered Insurance Support • Always Available
+              AI-Powered Insurance Support - Always Available
             </p>
           </div>
+          <LMButton
+            variant="secondary"
+            size="sm"
+            onClick={resetConversation}
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              color: LMDesignSystem.colors.white,
+              border: `1px solid rgba(255, 255, 255, 0.3)`,
+              fontSize: window.innerWidth < 768 ? '0.75rem' : '0.875rem'
+            }}
+          >
+            Reset Chat
+          </LMButton>
         </div>
         
         {/* Security Badge - Following LM Brand Guidelines */}
@@ -581,14 +634,14 @@ const LibertyMutualAIDemo = () => {
           </LMButton>
           <LMButton
             variant="suggestion"
-            onClick={() => handleSendMessage("gibberish test")}
+            onClick={() => handleSendMessage("I need help with billing and payments")}
             disabled={false}
             fullWidth={true}
             style={{
               backgroundColor: LMDesignSystem.colors.yellowTint60
             }}
           >
-            Test Error Handling
+            Billing Help
           </LMButton>
         </div>
         
@@ -598,7 +651,7 @@ const LibertyMutualAIDemo = () => {
           color: LMDesignSystem.colors.libertyDarkGray,
           textAlign: 'center'
         }}>
-          Demo by Mirabelle Doiron • Showcasing AI UX Best Practices for Insurance
+          Demo by Mirabelle Doiron - Showcasing AI UX Best Practices for Insurance
         </div>
       </div>
 

@@ -160,7 +160,7 @@ console.log('getAIResponse called with:', { userMessage, message, currentFlow, c
                       : 'experienced driver';
       
       return {
-        content: `Thank you! Based on your ${experience} experience in Fox Point, WI, here's your personalized auto insurance quote:\n\n🏆 **Your Liberty Mutual Auto Quote**\n\n**Monthly Premium: $89.50**\n**Annual Premium: $1,074**\n\n**Coverage Includes:**\n• Liability: $100,000/$300,000\n• Collision: $500 deductible\n• Comprehensive: $500 deductible\n• Uninsured Motorist: $100,000/$300,000\n• Roadside Assistance: Included\n\n**Liberty Mutual Benefits:**\n• Accident Forgiveness (first accident)\n• New Car Replacement\n• Better Car Replacement\n• 24/7 Claims Support\n\nWould you like to proceed with this quote or make any adjustments?`,
+        content: `Thank you! Based on your ${experience} experience in Fox Point, WI, here's your personalized auto insurance quote:\n\n**Your Liberty Mutual Auto Quote**\n\n**Monthly Premium: $89.50**\n**Annual Premium: $1,074**\n\n**Coverage Includes:**\n• Liability: $100,000/$300,000\n• Collision: $500 deductible\n• Comprehensive: $500 deductible\n• Uninsured Motorist: $100,000/$300,000\n• Roadside Assistance: Included\n\n**Liberty Mutual Benefits:**\n• Accident Forgiveness (first accident)\n• New Car Replacement\n• Better Car Replacement\n• 24/7 Claims Support\n\nWould you like to proceed with this quote or make any adjustments?`,
         suggestions: ["Proceed with quote", "Adjust coverage", "Compare with other companies", "Speak to an agent"],
         context: { flow: 'quote', step: 'final_quote', location: 'Fox Point, WI', coverage: 'auto', monthlyPremium: '$89.50' }
       };
@@ -272,7 +272,7 @@ console.log('getAIResponse called with:', { userMessage, message, currentFlow, c
   if (message.includes('payment') || message.includes('bill') || currentFlow === 'billing') {
     if (currentStep !== 'payment_verification') {
       return {
-        content: "I can help with payment and billing questions.\n\n🔒 **Security Verification Required**\nFor your protection, I need to verify your identity before accessing billing information.\n\n**Verification Options:**\n• Policy number (most secure)\n• Phone number on file\n• Email address on file\n• Last 4 digits of SSN\n\n**Your data is protected:**\n• Encrypted transmission\n• Secure verification process\n• No data stored in chat\n\nWhat's the easiest way for you to verify your account?",
+        content: "I can help with payment and billing questions.\n\n**Security Verification Required**\nFor your protection, I need to verify your identity before accessing billing information.\n\n**Verification Options:**\n• Policy number (most secure)\n• Phone number on file\n• Email address on file\n• Last 4 digits of SSN\n\n**Your data is protected:**\n• Encrypted transmission\n• Secure verification process\n• No data stored in chat\n\nWhat's the easiest way for you to verify your account?",
         suggestions: ["Policy number", "Phone number", "Email address", "Last 4 of SSN"],
         context: { flow: 'billing', step: 'payment_verification', securityRequired: true }
       };
@@ -316,7 +316,7 @@ console.log('getAIResponse called with:', { userMessage, message, currentFlow, c
   // Greetings
   if (message.includes('hi') || message.includes('hello') || message.includes('hey')) {
     return {
-      content: "Hello! Great to meet you! I'm Liberty Assistant, and I'm here to make insurance simple and straightforward.\n\n🏆 **Liberty Mutual - Protecting What Matters Most**\n\nI can help you with:\n• Filing claims quickly and easily\n• Getting instant quotes\n• Understanding your coverage\n• Managing payments\n• Updating your information\n\n**Progressive Approach:** I'll guide you step-by-step, only asking for what's needed when it's needed.\n\nWhether you're a current customer or shopping for new coverage, I'm here to help! What brings you here today?",
+      content: "Hello! Great to meet you! I'm Liberty Assistant, and I'm here to make insurance simple and straightforward.\n\n**Liberty Mutual - Protecting What Matters Most**\n\nI can help you with:\n• Filing claims quickly and easily\n• Getting instant quotes\n• Understanding your coverage\n• Managing payments\n• Updating your information\n\n**Progressive Approach:** I'll guide you step-by-step, only asking for what's needed when it's needed.\n\nWhether you're a current customer or shopping for new coverage, I'm here to help! What brings you here today?",
       suggestions: ["I need insurance", "I'm a current customer", "I have a question", "Just browsing"],
       context: { flow: 'greeting', step: 'initial_response', progressiveDisclosure: true }
     };
@@ -334,7 +334,7 @@ console.log('getAIResponse called with:', { userMessage, message, currentFlow, c
   // Error handling - when AI doesn't understand
   if (message.includes('gibberish') || message.includes('test') || message.includes('asdf') || message.includes('qwerty')) {
     return {
-      content: "I'm not quite sure I understand that request. Let me help you get back on track!\n\n🔒 **Security Note:** I'm designed to help with insurance-related questions only.\n\n**I can help you with:**\n• Filing insurance claims\n• Getting quotes for coverage\n• Explaining policy details\n• Payment and billing questions\n\n**Trust & Security:**\n• All conversations are encrypted\n• Your information is protected\n• I can't access personal data without verification\n\nWhat would you like help with?",
+      content: "I'm not quite sure I understand that request. Let me help you get back on track!\n\n**Security Note:** I'm designed to help with insurance-related questions only.\n\n**I can help you with:**\n• Filing insurance claims\n• Getting quotes for coverage\n• Explaining policy details\n• Payment and billing questions\n\n**Trust & Security:**\n• All conversations are encrypted\n• Your information is protected\n• I can't access personal data without verification\n\nWhat would you like help with?",
       suggestions: ["File a claim", "Get a quote", "Policy questions", "Speak to a human agent"],
       context: { needsClarification: true, securityMessage: true }
     };
