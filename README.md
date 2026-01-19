@@ -270,4 +270,4 @@ This project is a demo showcasing UX best practices for AI chatbots in the insur
 
 ---
 
-**Note**: This is a demo project showcasing AI best practices. The AI responses are simulated and do not represent actual Insurance Company services or policies. You can see [the live example here](http://chatbot.co/)
+**Note**: This is a demo project showcasing AI best practices. The AI responses are simulated and do not represent actual Insurance Company services or policies.
